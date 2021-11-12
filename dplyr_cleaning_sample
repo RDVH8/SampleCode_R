@@ -1,0 +1,38 @@
+library(readxl)
+# load your data
+# View(dat_Aft)
+#
+dat_Aft$week <- NA
+dat_Aft$week <- ifelse(dat_Aft$Day <= 7, 1, 2) # ifelse statement to create week var based on Day
+#
+# need to convert NA vars to numerics and make all numeric values only
+library(dplyr)
+dat_Aft$Upset_N <- recode(dat_Aft$Upset_A, "1 - never" = 1, "2" = 2, "3" = 3,
+                      "4" = 4, "5 - always" = 5)
+dat_Aft$Hostile_N <- recode(dat_Aft$Hostile_A, "1 - never" = 1, "2" = 2, "3" = 3,
+                        "4" = 4, "5 - always" = 5)
+dat_Aft$Ashamed_N <- recode(dat_Aft$Ashamed_A, "1 - never" = 1, "2" = 2, "3" = 3,
+                      "4" = 4, "5 - always" = 5)
+dat_Aft$Nervous_N <- recode(dat_Aft$Nervous_A, "1 - never" = 1, "2" = 2, "3" = 3,
+                      "4" = 4, "5 - always" = 5)
+dat_Aft$Afraid_N <- recode(dat_Aft$Afraid, "1 - never" = 1, "2" = 2, "3" = 3,
+                      "4" = 4, "5 - always" = 5)
+# calculate NA average (the value we actually care about) #
+dat_Aft$NA_AVG <- (dat_Aft$Upset_N + dat_Aft$Hostile_N + dat_Aft$Ashamed_N
+                   + dat_Aft$Nervous_N + dat_Aft$Afraid_N) / 5
+summary(dat_Aft)
+#
+# steps to create resid change score #
+  # 1. Create lead in NA_AVG
+dat_Aft <- dat_Aft[order(dat_Aft$ID),]
+library(data.table)
+dat_Aft<-as.data.table(dat_Aft)
+dat_Aft[,NA_AVG_l :=shift(NA_AVG,type='lead'),by=ID]
+dat_Aft<-as.data.frame(dat_Aft)
+  # 2. Create linear model to pull out residuals
+model <- lm(NA_AVG_l ~ NA_AVG, data = dat_Aft,
+                    na.action=na.exclude)
+summary(model)
+  # 3. Save residuals to dat_Aft
+dat_Aft[names(model$residuals),"Resid"]<-model$residuals
+  # BOOM! Done!
